@@ -171,15 +171,15 @@ function formatDate(date) {
     hour: 'numeric',
     minute: 'numeric',
     second: 'numeric',
-    timeZone: 'Europe/London',
+    timeZone: 'UTC',
     hour12: true,
   };
   return new Date(date).toLocaleString('en-US', options);
 }
 
-console.log(formatDate('2024-02-01T15:00:00.000Z')); // Output: '2/1/2024, 3:00:00 PM'
-console.log(formatDate('1999-01-05T02:20:00.000Z')); // Output: '1/5/1999, 2:20:00 AM'
-console.log(formatDate('1970-12-14T05:30:05.000Z')); // Output: '12/14/1970, 6:30:05 AM'
+// console.log(formatDate('2024-02-01T15:00:00.000Z')); // Output: '2/1/2024, 3:00:00 PM'
+// console.log(formatDate('1999-01-05T02:20:00.000Z')); // Output: '1/5/1999, 2:20:00 AM'
+// console.log(formatDate('1970-12-14T05:30:05.000Z')); // Output: '12/14/1970, 6:30:05 AM'
 
 /**
  * Returns the total number of weekend days (Saturdays and Sundays) in a specified month and year.
@@ -221,24 +221,12 @@ function getCountWeekendsInMonth(month, year) {
  * Date(2023, 1, 23) => 9
  */
 function getWeekNumberByDate(date) {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const dayOfYear = Math.ceil((date - firstDayOfYear) / 86400000);
-  return Math.ceil((dayOfYear + firstDayOfYear.getDay() + 1) / 7);
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const msInDay = 24 * 60 * 60 * 1000;
+  const diff = (date - startOfYear) / msInDay;
+  const result = Math.ceil((diff + startOfYear.getDay()) / 7);
+  return startOfYear.getDay() === 0 ? result + 1 : result;
 }
-
-console.log(getWeekNumberByDate(new Date(2024, 0, 3))); // 1);
-console.log(getWeekNumberByDate(new Date(2024, 0, 31))); // 5);
-console.log(getWeekNumberByDate(new Date(2024, 1, 23))); // 8);
-console.log(getWeekNumberByDate(new Date(2023, 1, 23))); // 9);
-console.log(getWeekNumberByDate(new Date(2022, 2, 22))); // 13);
-console.log(getWeekNumberByDate(new Date(2021, 3, 21))); // 17);
-console.log(getWeekNumberByDate(new Date(2020, 4, 20))); // 21);
-console.log(getWeekNumberByDate(new Date(2019, 5, 23))); // 25);
-console.log(getWeekNumberByDate(new Date(2018, 6, 22))); // 29);
-console.log(getWeekNumberByDate(new Date(2017, 7, 21))); // 35);
-console.log(getWeekNumberByDate(new Date(2016, 8, 20))); // 39);
-console.log(getWeekNumberByDate(new Date(2015, 9, 23))); // 43);
-console.log(getWeekNumberByDate(new Date(1950, 10, 22))); // 48);
 
 /**
  * Returns the date of the next Friday the 13th from a given date.
@@ -298,38 +286,26 @@ function getQuarter(date) {
  * { start: '01-01-2024', end: '10-01-2024' }, 1, 1 => ['01-01-2024', '03-01-2024', '05-01-2024', '07-01-2024', '09-01-2024']
  */
 function getWorkSchedule(period, countWorkDays, countOffDays) {
-  // const [dayStart, monthStart, yearStart] = period.start.split('-').map(Number);
-  // const [dayEnd, monthEnd, yearEnd] = period.end.split('-').map(Number);
-  const startDate = new Date(period.start);
-  const endDate = new Date(period.end);
+  const startPeriod = new Date(period.start.split('-').reverse());
+  const endPeriod = new Date(period.end.split('-').reverse());
   const schedule = [];
 
-  const currentDate = new Date(startDate);
-  let isWorkingDay = true;
+  const currentDay = new Date(startPeriod);
 
-  console.log();
-
-  while (currentDate <= endDate) {
-    const formattedDate = `${currentDate.getDate().toString().padStart(2, '0')}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${currentDate.getFullYear()}`;
-
-    schedule.push(formattedDate);
-
-    if (isWorkingDay) {
-      currentDate.setDate(currentDate.getDate() + countWorkDays);
-    } else {
-      currentDate.setDate(currentDate.getDate() + countOffDays);
+  while (currentDay <= endPeriod) {
+    for (let i = 0; i < countWorkDays && currentDay <= endPeriod; i += 1) {
+      const day = currentDay.getDate().toString().padStart(2, '0');
+      const month = (currentDay.getMonth() + 1).toString().padStart(2, '0');
+      const year = currentDay.getFullYear();
+      const workingDay = `${day}-${month}-${year}`;
+      schedule.push(workingDay);
+      currentDay.setDate(currentDay.getDate() + 1);
     }
-
-    isWorkingDay = !isWorkingDay;
+    currentDay.setDate(currentDay.getDate() + countOffDays);
   }
 
   return schedule;
 }
-
-console.log(
-  '🚀:',
-  getWorkSchedule({ start: '01-01-2024', end: '15-01-2024' }, 1, 3)
-);
 
 /**
  * Determines whether the year in the provided date is a leap year.
